@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/vela-ssoc/vela-kit/auxlib"
 	"github.com/vela-ssoc/vela-kit/grep"
+	"net"
 	"regexp"
 	"strings"
 )
@@ -16,6 +17,7 @@ type Section struct {
 	keys      []string
 	data      []string
 	regex     []*regexp.Regexp
+	subnet    []*net.IPNet
 	partition int
 }
 
@@ -321,13 +323,37 @@ func (s *Section) newMatch(i int, ov *option) func(string, string) bool {
 	}
 }
 
-func (s *Section) Match(v string, ov *option) bool {
-	n := len(s.data)
-	for i := 0; i < n; i++ {
-		item := s.data[i]
-		fn := s.newMatch(i, ov)
-		if fn(v, item) {
+func (s *Section) ContainNet(v string) bool {
+	ip := net.ParseIP(v)
+	if ip == nil {
+		return false
+	}
+
+	if len(s.subnet) == 0 {
+		return false
+	}
+
+	for _, sub := range s.subnet {
+		if sub.Contains(ip) {
 			return true
+		}
+	}
+
+	return false
+}
+
+func (s *Section) Match(v string, ov *option) bool {
+	switch s.method {
+	case Cidr:
+		return s.ContainNet(v)
+	default:
+		n := len(s.data)
+		for i := 0; i < n; i++ {
+			item := s.data[i]
+			fn := s.newMatch(i, ov)
+			if fn(v, item) {
+				return true
+			}
 		}
 	}
 
@@ -345,42 +371,69 @@ func (s *Section) Compare(ov *option, v string) bool {
 	return false
 }
 
+func (s *Section) UnaryMatch(ov *option) (bool, error) {
+	if ov.value == nil {
+		return false, nil
+	}
+
+	n := len(s.data)
+	if n == 0 {
+		return false, nil
+	}
+
+	str, err := auxlib.ToStringE(ov.value)
+	if err != nil {
+		return false, err
+	}
+
+	for i := 0; i < n; i++ {
+		if strings.Contains(str, s.data[i]) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (s *Section) Call(ov *option) (bool, error) {
 	if ov.peek == nil && ov.compare == nil {
 		return false, fmt.Errorf("invalid peek function")
-	}
-
-	if s.method == Pass {
-		return true, nil
 	}
 
 	if !s.Ok() {
 		return false, s.err
 	}
 
-	n := len(s.keys)
-	for i := 0; i < n; i++ {
-		if ov.compare != nil {
-			if s.Compare(ov, s.keys[i]) {
-				return s.not != true, s.err
+	switch s.method {
+	case Pass:
+		return true, nil
+	case Unary:
+		return s.UnaryMatch(ov)
+
+	default:
+		n := len(s.keys)
+		for i := 0; i < n; i++ {
+			if ov.compare != nil {
+				if s.Compare(ov, s.keys[i]) {
+					return s.not != true, s.err
+				}
+				continue
 			}
-			continue
-		}
 
-		if !s.Match(ov.peek(s.keys[i]), ov) {
-			continue
-		}
+			if !s.Match(ov.peek(s.keys[i]), ov) {
+				continue
+			}
 
-		return s.not != true, s.err
+			return s.not != true, s.err
+		}
+		return s.not != false, s.err
 	}
 
-	return s.not != false, s.err
 }
 
 // Compile
 // aaa eq abc,eee,fff => Section{not:false , keys: []string{aaa} , method: eq , data: []string{abc , eee , ff}}
 // aaa !eq abc,eee,fff => Section{not:true, keys: []string{aaa} , method: eq , data: []string{abc , eee , ff}}
-
 func (s *Section) isUnary() bool {
 	if strings.IndexFunc(s.raw, func(r rune) bool {
 		switch r {

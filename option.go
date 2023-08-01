@@ -8,13 +8,21 @@ import (
 type OptionFunc func(*option)
 
 type option struct {
+	unary     bool
 	seek      int
+	value     interface{}
 	logic     Logic
 	peek      Peek
 	compare   func(string, string, Method) bool
 	co        *lua.LState
 	partition []int
 	payload   func(int, string)
+}
+
+func WithUnary(v bool) OptionFunc {
+	return func(o *option) {
+		o.unary = v
+	}
 }
 
 func Seek(i int) OptionFunc {

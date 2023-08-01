@@ -18,6 +18,7 @@ const (
 	Oop
 	Pass
 	Regex
+	Cidr
 )
 
 var (

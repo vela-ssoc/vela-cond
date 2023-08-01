@@ -1,7 +1,7 @@
 package cond
 
 import (
-	auxlib2 "github.com/vela-ssoc/vela-kit/auxlib"
+	"github.com/vela-ssoc/vela-kit/auxlib"
 	"path/filepath"
 	"strings"
 )
@@ -28,11 +28,11 @@ func String(raw string) Peek {
 		case "ext":
 			return filepath.Ext(raw)
 		case "ipv4":
-			return auxlib2.ToString(auxlib2.Ipv4(raw))
+			return auxlib.ToString(auxlib.Ipv4(raw))
 		case "ipv6":
-			return auxlib2.ToString(auxlib2.Ipv6(raw))
+			return auxlib.ToString(auxlib.Ipv6(raw))
 		case "ip":
-			return auxlib2.ToString(auxlib2.Ipv4(raw) || auxlib2.Ipv6(raw))
+			return auxlib.ToString(auxlib.Ipv4(raw) || auxlib.Ipv6(raw))
 		}
 
 		n := len(key)
@@ -50,7 +50,7 @@ func String(raw string) Peek {
 
 		idx := strings.Index(key, ":")
 		if idx < 0 {
-			offset, err := auxlib2.ToIntE(key[1 : n-1])
+			offset, err := auxlib.ToIntE(key[1 : n-1])
 			if err != nil {
 				return raw
 			}
@@ -62,8 +62,8 @@ func String(raw string) Peek {
 			return raw
 		}
 
-		s := auxlib2.ToInt(key[1:idx])
-		e := auxlib2.ToInt(key[idx+1 : n-1])
+		s := auxlib.ToInt(key[1:idx])
+		e := auxlib.ToInt(key[idx+1 : n-1])
 		if s > size {
 			return ""
 		}

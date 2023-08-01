@@ -52,12 +52,12 @@ func (tc *TnlCall) Hit(db vela.Bucket, key string) bool {
 }
 
 func (tc *TnlCall) Path() string {
-	return fmt.Sprintf("/v1/security%s", tc.uri.Path)
+	return fmt.Sprintf("/api/v1/broker/security%s?%s", tc.uri.Path, tc.uri.Query())
 }
 
-func (tc *TnlCall) Query() string {
-	return tc.uri.RawQuery
-}
+//func (tc *TnlCall) Query() string {
+//	return tc.uri.RawQuery
+//}
 
 func (tc *TnlCall) Header() http.Header {
 	return JsonHeader
@@ -92,13 +92,7 @@ func (tc *TnlCall) do(val string) bool {
 		return true
 	}
 
-	r := xEnv.HTTP(http.MethodPost, tc.Path(), tc.Query(), tc.Body(val), tc.Header())
-	if e := r.E(); e != nil {
-		return false
-	}
-
-	err := r.JSON(&tc.reply)
-	if err != nil {
+	if e := xEnv.JSON(tc.Path(), tc.Body(val), &tc.reply); e != nil {
 		return false
 	}
 
@@ -106,6 +100,7 @@ func (tc *TnlCall) do(val string) bool {
 		tc.save(db, val, false)
 		return false
 	}
+
 	tc.save(db, val, true)
 	return true
 }

@@ -21,6 +21,23 @@ func (cnd *Cond) CheckMany(L *lua.LState, opt ...OptionFunc) {
 		return
 	}
 
+	if ov.unary {
+		sec := &Section{method: Unary}
+		for idx := ov.seek + 1; idx <= n; idx++ {
+			if item := L.IsString(idx); len(item) > 0 {
+				sec.data = append(sec.data, item)
+			}
+		}
+
+		if len(sec.data) == 0 {
+			L.RaiseError("condition compile fail not found data")
+			return
+		}
+
+		cnd.append(sec)
+		return
+	}
+
 	switch offset {
 	case 0:
 		return
@@ -104,11 +121,10 @@ func (cnd *Cond) matchAnd(ov *option, n int) bool {
 }
 
 func (cnd *Cond) with(v interface{}, opt ...OptionFunc) *option {
-	ov := &option{logic: AND}
+	ov := &option{logic: AND, value: v}
 	for _, fn := range opt {
 		fn(ov)
 	}
-
 	ov.NewPeek(v)
 	return ov
 }

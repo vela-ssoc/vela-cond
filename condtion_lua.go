@@ -6,8 +6,8 @@ import (
 )
 
 type LCond struct {
-	onMatch *pipe.Px
-	noMatch *pipe.Px
+	onMatch *pipe.Chains
+	noMatch *pipe.Chains
 	co      *lua.LState
 	cnd     *Cond
 }
