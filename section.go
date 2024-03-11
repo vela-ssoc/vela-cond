@@ -12,6 +12,7 @@ import (
 type Section struct {
 	err       error
 	not       bool
+	iCase     bool
 	method    op
 	raw       string
 	keys      []string
@@ -134,32 +135,72 @@ func (s *Section) withB(offset *int, n int) {
 	switch em {
 	case "==":
 		s.method = Eq
+		*offset = sep + 2
+		return
 	case "eq":
 		s.method = Eq
+		*offset = sep + 2
+		return
 	case "re":
 		s.method = Re
+		*offset = sep + 2
+		return
 	case "cn":
 		s.method = Cn
+		*offset = sep + 2
+		return
 	case "in":
 		s.method = In
+		*offset = sep + 2
+		return
 	case "lt":
 		s.method = Lt
+		*offset = sep + 2
+		return
 	case "gt":
 		s.method = Gt
+		*offset = sep + 2
+		return
 
 	case "le", "<=":
 		s.method = Le
+		*offset = sep + 2
+		return
 	case "ge", ">=":
 		s.method = Ge
+		*offset = sep + 2
+		return
 	case "->":
 		s.method = Call
+		*offset = sep + 2
+		return
 
-	default:
-		s.invalid("invalid method %s", em)
+	}
+
+	em = s.raw[sep : sep+3]
+	switch em {
+	case "ieq":
+		s.method = Eq
+		s.iCase = true
+		*offset = sep + 3
+		return
+	case "icn":
+		s.method = Cn
+		s.iCase = true
+		*offset = sep + 3
+		return
+	case "iin":
+		s.method = In
+		s.iCase = true
+		*offset = sep + 3
+		return
+	case "ire":
+		s.method = Re
+		s.iCase = true
+		*offset = sep + 3
 		return
 	}
 
-	*offset = sep + 2
 }
 
 func (s *Section) withC(offset *int, n int) {
@@ -237,14 +278,23 @@ func (s *Section) compare(a string, b string) bool {
 			result = true
 			goto done
 		}
-		result = a == b
+		if s.iCase {
+			result = strings.EqualFold(a, b)
+		} else {
+			result = a == b
+		}
+
 		goto done
 
 	case Re:
 		result = grep.New(b)(a)
 		goto done
 	case Cn:
-		result = strings.Contains(strings.ToLower(a), strings.ToLower(b))
+		if s.iCase {
+			result = strings.Contains(strings.ToLower(a), strings.ToLower(b))
+		} else {
+			result = strings.Contains(a, b)
+		}
 		goto done
 	case In:
 		result = a == b
@@ -308,14 +358,19 @@ func (s *Section) newMatch(i int, ov *option) func(string, string) bool {
 		}
 
 		n := len(ov.partition)
-		if n == 0 {
+		if n > 0 {
+			for ii := 0; ii < n; ii++ {
+				part := ov.partition[ii]
+				if part >= 1 && part <= len(ret) {
+					ov.Pay(i, ret[part-1])
+				}
+			}
 			return true
 		}
 
-		for ii := 0; ii < n; ii++ {
-			part := ov.partition[ii]
-			if part >= 1 && part <= len(ret) {
-				ov.Pay(i, ret[part-1])
+		if ov.payload != nil {
+			for pos, item := range ret {
+				ov.Pay(pos, item)
 			}
 		}
 
@@ -371,7 +426,7 @@ func (s *Section) Compare(ov *option, v string) bool {
 	return false
 }
 
-func (s *Section) UnaryMatch(ov *option) (bool, error) {
+func (s *Section) Unary(ov *option) (bool, error) { // unary: section:{data:[]string(data1 , data2))
 	if ov.value == nil {
 		return false, nil
 	}
@@ -395,6 +450,25 @@ func (s *Section) UnaryMatch(ov *option) (bool, error) {
 	return false, nil
 }
 
+func (s *Section) pure(ov *option) (bool, error) {
+	n := len(s.keys)
+	for i := 0; i < n; i++ {
+		if ov.compare != nil {
+			if s.Compare(ov, s.keys[i]) {
+				return s.not != true, s.err
+			}
+			continue
+		}
+
+		if !s.Match(ov.peek(s.keys[i]), ov) {
+			continue
+		}
+
+		return s.not != true, s.err
+	}
+	return s.not != false, s.err
+}
+
 func (s *Section) Call(ov *option) (bool, error) {
 	if ov.peek == nil && ov.compare == nil {
 		return false, fmt.Errorf("invalid peek function")
@@ -404,29 +478,15 @@ func (s *Section) Call(ov *option) (bool, error) {
 		return false, s.err
 	}
 
-	switch s.method {
-	case Pass:
+	switch {
+	case s.method == Pass:
 		return true, nil
-	case Unary:
-		return s.UnaryMatch(ov)
-
+	case s.method == Unary && len(s.keys) > 0: //!key , true , false 这类单目运算
+		return s.pure(ov)
+	case s.method == Unary && len(s.data) > 0: // 单目运算全局匹配
+		return s.Unary(ov)
 	default:
-		n := len(s.keys)
-		for i := 0; i < n; i++ {
-			if ov.compare != nil {
-				if s.Compare(ov, s.keys[i]) {
-					return s.not != true, s.err
-				}
-				continue
-			}
-
-			if !s.Match(ov.peek(s.keys[i]), ov) {
-				continue
-			}
-
-			return s.not != true, s.err
-		}
-		return s.not != false, s.err
+		return s.pure(ov)
 	}
 
 }

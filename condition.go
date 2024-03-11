@@ -2,7 +2,7 @@ package cond
 
 import (
 	"bytes"
-	auxlib2 "github.com/vela-ssoc/vela-kit/auxlib"
+	"github.com/vela-ssoc/vela-kit/auxlib"
 	"github.com/vela-ssoc/vela-kit/lua"
 )
 
@@ -49,13 +49,13 @@ func F(prefix string, v ...interface{}) string {
 	}
 
 	var buf bytes.Buffer
-	buf.Write(auxlib2.S2B(prefix))
+	buf.Write(auxlib.S2B(prefix))
 	buf.WriteByte(' ')
 	for i, item := range v {
 		if i != 0 {
 			buf.WriteByte(',')
 		}
-		buf.WriteString(auxlib2.ToString(item))
+		buf.WriteString(auxlib.ToString(item))
 	}
 
 	return buf.String()
@@ -84,7 +84,6 @@ func Check(L *lua.LState, idx int) *LCond {
 func LValue(L *lua.LState, val lua.LValue) *LCond {
 	if val.Type() != lua.LTObject {
 		L.RaiseError("invalid condition type , got %v", val.Type().String())
-
 	}
 
 	lc, ok := val.(*LCond)

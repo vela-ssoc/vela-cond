@@ -7,6 +7,7 @@ type Ignore []*Cond
 func NewIgnore() *Ignore {
 	return new(Ignore)
 }
+
 func (iv *Ignore) Add(cnd *Cond) {
 	v := *iv
 	v = append(v, cnd)

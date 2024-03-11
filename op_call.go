@@ -13,7 +13,7 @@ import (
 
 var (
 	JsonHeader = http.Header{
-		"Content-Type": []string{"application/json"},
+		"Content-Ktype": []string{"application/json"},
 	}
 )
 

@@ -2,6 +2,7 @@ package cond
 
 import (
 	"github.com/vela-ssoc/vela-kit/auxlib"
+	"github.com/vela-ssoc/vela-kit/strutil"
 	"path/filepath"
 	"strings"
 )
@@ -28,11 +29,11 @@ func String(raw string) Peek {
 		case "ext":
 			return filepath.Ext(raw)
 		case "ipv4":
-			return auxlib.ToString(auxlib.Ipv4(raw))
+			return strutil.String(auxlib.Ipv4(raw))
 		case "ipv6":
-			return auxlib.ToString(auxlib.Ipv6(raw))
+			return strutil.String(auxlib.Ipv6(raw))
 		case "ip":
-			return auxlib.ToString(auxlib.Ipv4(raw) || auxlib.Ipv6(raw))
+			return strutil.String(auxlib.Ipv4(raw) || auxlib.Ipv6(raw))
 		}
 
 		n := len(key)

@@ -6,6 +6,7 @@ import (
 )
 
 type Event struct {
+	Addr  string
 	Type  string
 	Value int
 }
@@ -16,6 +17,8 @@ func (ev *Event) Field(key string) string {
 		return ev.Type
 	case "value":
 		return strconv.Itoa(ev.Value)
+	case "addr":
+		return ev.Addr
 	}
 
 	return ""
@@ -33,6 +36,17 @@ func TestExp(t *testing.T) {
 	}
 
 	t.Log(cnd.Match(ev, Payload(pay)))
+}
+
+func TestUnary(t *testing.T) {
+	cnd := New("true")
+	ev := &Event{
+		Type:  "typeof",
+		Value: 456,
+		Addr:  "a",
+	}
+
+	t.Log(cnd.Match(ev))
 }
 
 func TestString(t *testing.T) {

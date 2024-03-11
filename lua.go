@@ -13,8 +13,7 @@ var xEnv vela.Environment
 
 /*
 	cnd = vela.cnd.compile("name eq zhangsan,lisi,wangwu").ok(a).no(b)
-
-vela.cnd.like("abc")
+    vela.cnd.like("abc")
 
 
 */
@@ -90,6 +89,7 @@ func WithEnv(env vela.Environment) {
 	kv := lua.NewUserKV()
 	kv.Set("format", lua.NewFunction(newLuaConditionFormat))
 	kv.Set("cidr", lua.NewFunction(newLuaCidrJit))
+	kv.Set("group", lua.NewFunction(NewCombineL))
 
 	xEnv.Set("cnd", lua.NewExport("vela.condition.export", lua.WithTable(kv), lua.WithFunc(newLuaConditionJit)))
 	xEnv.Set("cndf", lua.NewFunction(newLuaConditionFormat))
@@ -98,6 +98,7 @@ func WithEnv(env vela.Environment) {
 /*
 
 vela.cnd.cidr("src,dst" , 192.168.0.0/24","10.0.0.0/24")
+vela.cnd("abc").match(object)
 
 
 
